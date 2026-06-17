@@ -1,0 +1,10 @@
+faster-whisper==1.0.3
+moviepy==2.0.0.dev2
+opencv-python==4.9.0.80
+ffmpeg-python==0.2.0
+Flask==3.0.2
+Pillow==10.2.0
+numpy==1.26.4
+yt-dlp==2024.3.10
+pysrt==1.1.2
+tqdm==4.66.2

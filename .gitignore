@@ -1,0 +1,22 @@
+# Python virtual environment
+venv/
+ENV/
+.env
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# [span_0](start_span)Project specific temporary folders[span_0](end_span)
+uploads/*
+!uploads/.gitkeep
+shorts_output/*
+!shorts_output/.gitkeep
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.dbs
