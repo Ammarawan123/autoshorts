@@ -2,6 +2,7 @@ import json
 import os
 import logging
 import ffmpeg
+from effects import apply_zoom, add_caption, add_watermark
 
 INPUT_VIDEO   = "input_video.mp4"
 CLIPS_JSON    = "selected_clips.json"
@@ -39,6 +40,9 @@ def render_clip(src: str, start: float, end: float,
     inp   = ffmpeg.input(src, ss=start, t=dur)
     video = inp.video.filter("crop", cw, ch, cx, cy).filter("scale", 1080, 1920)
     audio = inp.audio
+    video = apply_zoom(video)
+    video = add_caption(video, text="Your Caption Here")
+    video = add_watermark(video, "logo.png", "top_right")
 
     (
         ffmpeg
