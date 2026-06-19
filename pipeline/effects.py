@@ -39,27 +39,24 @@ def apply_zoom(video_stream, zoom_factor: float = 1.08, duration: float = None):
 # ---------------------------
 # CAPTION OVERLAY
 # ---------------------------
-def add_caption(video_stream,
-                text: str,
-                font_size: int = 48,
-                font_color: str = "white",
-                box: int = 1):
-    """
-    Adds caption text on video using drawtext filter.
-    """
-
+def add_caption(video_stream, text: str, font_size: int = 48, font_color: str = "white", box: int = 1):
     safe_text = text.replace(":", r"\:").replace("'", r"\'")
+    
+    # Path ko double escape karen aur Fontconfig ko skip karne ke liye 
+    # ':' ko path se alag rakhen
+    font_path = r"C\:/Windows/Fonts/arial.ttf"
 
     return video_stream.filter(
         "drawtext",
         text=safe_text,
+        fontfile=font_path,
         fontsize=font_size,
         fontcolor=font_color,
         x="(w-text_w)/2",
         y="h*0.80",
         box=box,
         boxcolor="black@0.5",
-        boxborderw=10
+        boxborderw=10,
     )
 
 

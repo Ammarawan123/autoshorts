@@ -2,60 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoShorts - Pipeline Upload Test</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; line-height: 1.6; }
-        .upload-box { border: 2px dashed #ccc; padding: 30px; text-align: center; background: #f9f9f9; border-radius: 8px; }
-        button { background: #0070f3; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 15px; }
-        button:hover { background: #0051b3; }
-        #status { margin-top: 20px; font-weight: bold; color: #333; }
-    </style>
+    <title>AutoShorts AI | Smart Video Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>AutoShorts <span class="accent">AI</span></h1>
+            <p>Transform videos into viral shorts locally.</p>
+        </header>
 
-    <h2>AutoShorts Pipeline Control</h2>
-    <p><strong>Module:</strong> Transcriber Module (Order #2)</p>
-    
-    <div class="upload-box">
-        <form id="uploadForm" enctype="multipart/form-data">
-            <input type="file" name="file" accept="video/*,audio/*" required>
-            <br>
-            <button type="submit">Upload & Transcribe</button>
-        </form>
+        <div class="upload-section">
+            <form id="uploadForm">
+                <div class="drop-zone" id="dropZone">
+                    <p id="dropText">Drag & Drop video or <span>browse</span></p>
+                    <input type="file" id="fileInput" name="file" accept="video/*" required hidden>
+                </div>
+                <button type="submit" id="uploadBtn">Generate Shorts</button>
+            </form>
+        </div>
+
+        <div id="status"></div>
+        <div id="resultsGrid" class="results-grid" style="display: none; margin-top: 30px;">
+    <h3>Your Viral Shorts</h3>
+    <div id="clipsContainer" class="clips-container"></div>
+</div>
     </div>
-
-    <div id="status"></div>
-
-    <script>
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const statusDiv = document.getElementById('status');
-            statusDiv.innerText = "Processing video with faster-whisper... Check your terminal log.";
-            statusDiv.style.color = "blue";
-
-            const formData = new FormData(e.target);
-            try {
-                const response = await fetch('/api/transcribe', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-                
-                if (response.ok) {
-                    statusDiv.innerText = "Success! transcript.json generated in root directory.";
-                    statusDiv.style.color = "green";
-                    console.log(result.data);
-                } else {
-                    statusDiv.innerText = "Error: " + (result.error || "Upload failed");
-                    statusDiv.style.color = "red";
-                }
-            } catch (err) {
-                statusDiv.innerText = "Error contacting server.";
-                statusDiv.style.color = "red";
-                console.error(err);
-            }
-        });
-    </script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
