@@ -16,13 +16,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 class ClipScorer:
     """
-    Analyzes transcription segments and assigns an engagement score
-    based on keyword presence and optimal sentence length.
+    Analyzes transcription segments and creates extended clips
+    around high-engagement content for short-form videos.
     """
-    def __init__(self, optimal_duration: float = 15.0):
+    def __init__(self, optimal_duration: float = 15.0, min_clip_duration: float = 10.0, max_clip_duration: float = 60.0):
         self.optimal_duration = optimal_duration
+        self.min_clip_duration = min_clip_duration
+        self.max_clip_duration = max_clip_duration
 
-        # High-engagement keywords to look for in the text
         self.high_impact_keywords = {
             "important", "secret", "reason", "why", "how", "best",
             "worst", "never", "always", "discover", "money", "hack",
@@ -30,36 +31,111 @@ class ClipScorer:
         }
 
     def _score_keywords(self, text: str) -> float:
-        """Calculates a score based on the presence of high-impact keywords."""
+        """Calculates a score based on keyword presence."""
         words = text.lower().split()
         if not words:
             return 0.0
-
         keyword_count = sum(1 for word in words if word.strip('.,!?') in self.high_impact_keywords)
-        # Max out keyword score at 5.0 (assuming 1 point per keyword)
         return min(keyword_count * 1.5, 5.0)
 
     def _score_length(self, start: float, end: float) -> float:
-        """
-        Calculates a score based on how close the segment duration
-        is to the optimal Short duration (e.g., 15 seconds).
-        """
+        """Scores based on duration proximity to optimal length."""
         duration = end - start
-
-        # Too short (under 3s) or too long (over 60s) gets heavily penalized
-        if duration < 3.0 or duration > 60.0:
+        if duration < 0.5:  # Ignore very short segments
             return 0.0
-
-        # The closer to the optimal duration, the higher the score (max 5.0)
+        # Reward any segment with some length; penalize if too short overall
         deviation = abs(self.optimal_duration - duration)
-        score = max(5.0 - (deviation * 0.3), 0.0)
-
+        score = max(5.0 - (deviation * 0.1), 0.0)
         return score
 
-    def score_segments(self, transcript_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _create_extended_clips(self, scored_segments: List[Dict[str, Any]], video_duration: float) -> List[Dict[str, Any]]:
         """
-        Iterates through the transcript segments, calculates scores,
-        and appends the score to each segment.
+        Create extended clips around high-scoring segments by merging nearby ones.
+        """
+        if not scored_segments:
+            return []
+
+        extended_clips = []
+        
+        # Sort by score to identify clusters of high-engagement content
+        sorted_by_score = sorted(scored_segments, key=lambda x: x["engagement_score"], reverse=True)
+        used_indices = set()
+        
+        for idx, high_score_seg in enumerate(sorted_by_score):
+            if idx in used_indices:
+                continue
+            
+            seg_idx = scored_segments.index(high_score_seg)
+            if seg_idx in used_indices:
+                continue
+            
+            # Build a clip by merging nearby segments
+            clip_start = high_score_seg["start"]
+            clip_end = high_score_seg["end"]
+            merged_segments = [high_score_seg]
+            used_indices.add(seg_idx)
+            
+            # Extend backwards to include preceding high-value segments
+            for j in range(seg_idx - 1, -1, -1):
+                candidate = scored_segments[j]
+                if j in used_indices:
+                    continue
+                # Include if close and reasonably scored
+                if candidate["end"] >= clip_start - 2.0 and candidate["engagement_score"] > 0:
+                    clip_start = min(clip_start, candidate["start"])
+                    merged_segments.insert(0, candidate)
+                    used_indices.add(j)
+                    if clip_start - high_score_seg["start"] > self.max_clip_duration / 2:
+                        break
+            
+            # Extend forwards to include following segments
+            for j in range(seg_idx + 1, len(scored_segments)):
+                candidate = scored_segments[j]
+                if j in used_indices:
+                    continue
+                if candidate["start"] <= clip_end + 2.0 and candidate["engagement_score"] > 0:
+                    clip_end = max(clip_end, candidate["end"])
+                    merged_segments.append(candidate)
+                    used_indices.add(j)
+                    if clip_end - high_score_seg["end"] > self.max_clip_duration / 2:
+                        break
+            
+            clip_duration = clip_end - clip_start
+            
+            # Enforce duration bounds
+            if clip_duration < self.min_clip_duration:
+                # Try to expand if video allows
+                expand_before = max(0, clip_start - (self.min_clip_duration - clip_duration) / 2)
+                expand_after = min(video_duration, clip_end + (self.min_clip_duration - clip_duration) / 2)
+                clip_start = expand_before
+                clip_end = expand_after
+                clip_duration = clip_end - clip_start
+            
+            if clip_duration > self.max_clip_duration:
+                # Trim from edges, keeping high-score segment centered
+                excess = clip_duration - self.max_clip_duration
+                clip_start += excess / 2
+                clip_end -= excess / 2
+            
+            # Ensure bounds are valid
+            clip_start = max(0, clip_start)
+            clip_end = min(video_duration, clip_end)
+            
+            if clip_end - clip_start >= self.min_clip_duration:
+                extended_clips.append({
+                    "start": round(clip_start, 2),
+                    "end": round(clip_end, 2),
+                    "duration": round(clip_end - clip_start, 2),
+                    "engagement_score": high_score_seg["engagement_score"],
+                    "source_segments": len(merged_segments),
+                    "text": " ".join([s.get("text", "") for s in merged_segments[:3]])[:200]
+                })
+        
+        return extended_clips
+
+    def score_segments(self, transcript_data: List[Dict[str, Any]], video_duration: float = None) -> List[Dict[str, Any]]:
+        """
+        Scores individual segments and creates extended clips.
         """
         scored_segments = []
 
@@ -68,21 +144,23 @@ class ClipScorer:
             start = segment.get("start", 0.0)
             end = segment.get("end", 0.0)
 
-            # Calculate individual scores
             kw_score = self._score_keywords(text)
             len_score = self._score_length(start, end)
-
-            # Total score (out of 10)
             total_score = round(kw_score + len_score, 2)
 
-            # Create a new dictionary to avoid modifying the original
             scored_segment = segment.copy()
             scored_segment["engagement_score"] = total_score
             scored_segments.append(scored_segment)
 
-        # Sort segments by highest score first
-        scored_segments.sort(key=lambda x: x["engagement_score"], reverse=True)
-        return scored_segments
+        # Determine video duration
+        if video_duration is None and scored_segments:
+            video_duration = max(seg.get("end", 0) for seg in scored_segments) + 5
+        if video_duration is None:
+            video_duration = 300
+
+        # Create extended clips from scored segments
+        extended_clips = self._create_extended_clips(scored_segments, video_duration)
+        return extended_clips
 
 def process_transcript(input_json_path: str, output_json_path: str) -> None:
     """Main function to load the transcript, score it, and save the results."""

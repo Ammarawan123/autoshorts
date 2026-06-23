@@ -1,28 +1,12 @@
 {
     "scored_segments": [
         {
-            "start": 20.1,
-            "end": 35.5,
-            "text": "The most important rule is to always track what you spend your money on.",
-            "engagement_score": 9.88
-        },
-        {
-            "start": 2.5,
-            "end": 17.0,
-            "text": "Today I am going to share a secret hack on how you can save money fast.",
-            "engagement_score": 9.85
-        },
-        {
-            "start": 17.0,
-            "end": 20.1,
-            "text": "It is really quite simple.",
-            "engagement_score": 1.43
-        },
-        {
-            "start": 0.0,
-            "end": 2.5,
-            "text": "Hello everyone and welcome back to the channel.",
-            "engagement_score": 0.0
+            "start": 23.96,
+            "end": 33.96,
+            "duration": 10.0,
+            "engagement_score": 3.64,
+            "source_segments": 1,
+            "text": "You"
         }
     ]
 }

@@ -1,14 +1,39 @@
+import json
 import os
-import ffmpeg
+import shutil
+import subprocess
 from .effects import apply_zoom, add_caption
 
-# FFmpeg ka sahi path
-FFMPEG_EXE = r'D:\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe'
+FFMPEG_EXE = shutil.which('ffmpeg') or r'D:\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe'
+FFPROBE_EXE = shutil.which('ffprobe') or FFMPEG_EXE.replace('ffmpeg', 'ffprobe')
+if not os.path.exists(FFMPEG_EXE):
+    raise FileNotFoundError(
+        'FFmpeg executable not found. Install ffmpeg and ensure it is available on the system PATH, '
+        'or update pipeline/renderer.py with a valid FFMPEG_EXE path.'
+    )
+if not os.path.exists(FFPROBE_EXE):
+    raise FileNotFoundError(
+        'FFprobe executable not found. Install ffmpeg/ffprobe and ensure it is available on the PATH, '
+        'or update pipeline/renderer.py with a valid FFPROBE_EXE path.'
+    )
 
 def get_crop_params(video_path: str) -> tuple:
-    probe = ffmpeg.probe(video_path)
-    stream = next(s for s in probe["streams"] if s["codec_type"] == "video")
-    W, H = int(stream["width"]), int(stream["height"])
+    result = subprocess.run(
+        [FFPROBE_EXE, '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'json', video_path],
+        capture_output=True,
+        text=True,
+        check=False
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f'ffprobe failed: {result.stderr.strip()}')
+
+    probe = json.loads(result.stdout)
+    streams = probe.get('streams', [])
+    if not streams:
+        raise RuntimeError('No video stream found in media file.')
+
+    stream = streams[0]
+    W, H = int(stream['width']), int(stream['height'])
     crop_w = int(H * 9 / 16)
     crop_h = H
     if crop_w > W:
@@ -19,31 +44,35 @@ def get_crop_params(video_path: str) -> tuple:
 
 def render_clip(src, start, end, out, cw, ch, cx, cy):
     dur = end - start
-    
-    # Input stream
-    inp = ffmpeg.input(src, ss=start, t=dur)
-    
-    # Video processing
-    video = inp.video.filter("crop", cw, ch, cx, cy).filter("scale", 1080, 1920)
-    audio = inp.audio
-    
-    # Zoom effect
-    video = apply_zoom(video)
-    
-    # Caption ko safe mode mein chala rahe hain (agar error aaye toh skip ho jaye)
-    try:
-        video = add_caption(video, text="Viral Clip")
-    except Exception:
-        pass 
-    
-    # Final Rendering
-    (
-        ffmpeg
-        .output(video, audio, out,
-                vcodec="libx264", acodec="aac", 
-                audio_bitrate="192k", crf=23, 
-                preset="fast", movflags="+faststart",
-                pix_fmt="yuv420p")
-        .overwrite_output()
-        .run(cmd=FFMPEG_EXE, capture_stderr=True)
+    vf_filters = [
+        f'crop={cw}:{ch}:{cx}:{cy}',
+        'scale=1080:1920'
+    ]
+
+    # Apply caption as a drawtext filter
+    drawtext = (
+        "drawtext=fontfile='C\\:/Windows/Fonts/arial.ttf':"
+        "text='Viral Clip':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.5:boxborderw=10:"
+        "x=(w-text_w)/2:y=h*0.80"
     )
+    vf_filters.append(drawtext)
+
+    command = [
+        FFMPEG_EXE,
+        '-y',
+        '-ss', str(start),
+        '-t', str(dur),
+        '-i', src,
+        '-vf', ','.join(vf_filters),
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '23',
+        '-c:a', 'aac',
+        '-b:a', '192k',
+        '-pix_fmt', 'yuv420p',
+        out
+    ]
+
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(f'ffmpeg rendering failed: {result.stderr.strip()}')

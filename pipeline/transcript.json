@@ -1,24 +1,37 @@
 {
-  "segments": [
-    {
-      "start": 0.0,
-      "end": 2.5,
-      "text": "Hello everyone and welcome back to the channel."
+    "metadata": {
+        "language": "en",
+        "language_probability": 0.3153381645679474,
+        "duration": 60.0700625
     },
-    {
-      "start": 2.5,
-      "end": 17.0,
-      "text": "Today I am going to share a secret hack on how you can save money fast."
-    },
-    {
-      "start": 17.0,
-      "end": 20.1,
-      "text": "It is really quite simple."
-    },
-    {
-      "start": 20.1,
-      "end": 35.5,
-      "text": "The most important rule is to always track what you spend your money on."
-    }
-  ]
+    "segments": [
+        {
+            "id": 1,
+            "start": 28.26,
+            "end": 29.66,
+            "text": "You",
+            "words": [
+                {
+                    "word": "You",
+                    "start": 28.26,
+                    "end": 29.66,
+                    "probability": 0.09
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "start": 58.26,
+            "end": 59.66,
+            "text": "You",
+            "words": [
+                {
+                    "word": "You",
+                    "start": 58.26,
+                    "end": 59.66,
+                    "probability": 0.09
+                }
+            ]
+        }
+    ]
 }
