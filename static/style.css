@@ -1,0 +1,21 @@
+:root {
+    --bg: #0a0a0f;
+    --accent: #7C3AED;
+    --text: #ffffff;
+}
+
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+.container { width: 90%; max-width: 500px; text-align: center; }
+h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.accent { color: var(--accent); }
+
+.drop-zone { border: 2px dashed var(--accent); padding: 40px; border-radius: 15px; cursor: pointer; transition: 0.3s; background: rgba(124, 58, 237, 0.05); }
+.drop-zone:hover { background: rgba(124, 58, 237, 0.1); }
+
+button { background: var(--accent); color: white; border: none; padding: 15px 30px; font-size: 16px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 20px; font-weight: bold; }
+#status { margin-top: 20px; font-size: 14px; padding: 10px; }
+
+.results-grid { margin-top: 30px; text-align: left; }
+.clips-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+.clip-card { background: #1a1a24; padding: 10px; border-radius: 10px; text-align: center; }
+.clip-card video { width: 100%; border-radius: 5px; }
