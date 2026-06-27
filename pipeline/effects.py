@@ -2,84 +2,97 @@
 effects.py
 
 Handles:
-- Zoom effect (slow zoom-in)
-- Caption overlay (text on video)
-- Watermark overlay (logo/image)
+- Zoom effect (optional)
+- Caption overlay
+- Face detection (Week 3 addition)
 """
 
+import cv2
 import ffmpeg
 
 
 # ---------------------------
-# ZOOM EFFECT
+# FACE DETECTION (NEW)
 # ---------------------------
-def apply_zoom(video_stream, zoom_factor: float = 1.08, duration: float = None):
+face_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+)
+
+
+def detect_face_center(frame):
     """
-    Applies a subtle zoom-in effect using FFmpeg scale + crop animation idea.
-
-    Args:
-        video_stream: ffmpeg input video stream
-        zoom_factor: final zoom level (1.0 = no zoom, 1.1 = 10% zoom)
-        duration: optional (not strictly required for filter)
-
-    Returns:
-        ffmpeg video stream with zoom filter applied
+    Detects face and returns center (cx, cy).
+    If no face found → returns frame center.
     """
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # Simple zoom-in using scale filter (safe + stable approach)
+    faces = face_cascade.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(80, 80)
+    )
+
+    h, w = frame.shape[:2]
+
+    if len(faces) == 0:
+        return w // 2, h // 2
+
+    # Take first face
+    x, y, fw, fh = faces[0]
+
+    cx = x + fw // 2
+    cy = y + fh // 2
+
+    return cx, cy
+
+
+# ---------------------------
+# ZOOM EFFECT (unchanged)
+# ---------------------------
+def apply_zoom(video_stream, zoom_factor: float = 1.08):
     return (
         video_stream
-        .filter("scale",
-                f"iw*{zoom_factor}",
-                f"ih*{zoom_factor}")
+        .filter("scale", f"iw*{zoom_factor}", f"ih*{zoom_factor}")
         .filter("crop", "iw/1.08", "ih/1.08")
     )
 
 
 # ---------------------------
-# CAPTION OVERLAY
+# CAPTION OVERLAY (unchanged)
 # ---------------------------
-def add_caption(video_stream, text: str, font_size: int = 48, font_color: str = "white", box: int = 1):
-    safe_text = text.replace(":", r"\:").replace("'", r"\'")
-    
-    # Path ko double escape karen aur Fontconfig ko skip karne ke liye 
-    # ':' ko path se alag rakhen
+def add_caption(video_stream, text: str):
     font_path = r"C\:/Windows/Fonts/arial.ttf"
 
     return video_stream.filter(
         "drawtext",
-        text=safe_text,
+        text=text.replace(":", r"\:").replace("'", r"\'"),
         fontfile=font_path,
-        fontsize=font_size,
-        fontcolor=font_color,
+        fontsize=48,
+        fontcolor="white",
         x="(w-text_w)/2",
         y="h*0.80",
-        box=box,
+        box=1,
         boxcolor="black@0.5",
         boxborderw=10,
     )
 
 
 # ---------------------------
-# WATERMARK
+# WATERMARK (NEW FIXED)
 # ---------------------------
-def add_watermark(video_stream,
-                  watermark_path: str,
-                  position: str = "top_right"):
-    """
-    Overlays watermark image on video.
-    """
-
+def add_watermark(video_stream, watermark_path, position="top_right"):
     watermark = ffmpeg.input(watermark_path)
 
-    # Position mapping
     positions = {
-        "top_left": "(10,10)",
-        "top_right": "(main_w-overlay_w-10,10)",
-        "bottom_left": "(10,main_h-overlay_h-10)",
-        "bottom_right": "(main_w-overlay_w-10,main_h-overlay_h-10)",
+        "top_left": "10:10",
+        "top_right": "main_w-overlay_w-10:10",
+        "bottom_left": "10:main_h-overlay_h-10",
+        "bottom_right": "main_w-overlay_w-10:main_h-overlay_h-10",
     }
 
     pos = positions.get(position, positions["top_right"])
 
-    return ffmpeg.overlay(video_stream, watermark, eval=pos)
+    x, y = pos.split(":")
+
+    return ffmpeg.overlay(video_stream, watermark, x=x, y=y)
