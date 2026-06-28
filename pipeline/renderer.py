@@ -8,14 +8,37 @@ from .effects import detect_face_center
 # -----------------------------
 # FFmpeg setup
 # -----------------------------
-FFMPEG_EXE = shutil.which('ffmpeg') or r'D:\ffmpeg-8.1.1-full_build\bin\ffmpeg.exe'
-FFPROBE_EXE = shutil.which('ffprobe') or FFMPEG_EXE.replace('ffmpeg', 'ffprobe')
+FFMPEG_EXE = shutil.which("ffmpeg")
+FFPROBE_EXE = shutil.which("ffprobe")
 
-if not os.path.exists(FFMPEG_EXE):
+# Windows fallback
+if FFMPEG_EXE is None:
+    paths = [
+        r"C:\ffmpeg\bin\ffmpeg.exe",
+        r"C:\ffmpeg-8.1.2-essentials_build\ffmpeg-8.1.2-essentials_build\bin\ffmpeg.exe",
+    ]
+
+    for p in paths:
+        if os.path.exists(p):
+            FFMPEG_EXE = p
+            break
+
+if FFPROBE_EXE is None:
+    paths = [
+        r"C:\ffmpeg\bin\ffprobe.exe",
+        r"C:\ffmpeg-8.1.2-essentials_build\ffmpeg-8.1.2-essentials_build\bin\ffprobe.exe",
+    ]
+
+    for p in paths:
+        if os.path.exists(p):
+            FFPROBE_EXE = p
+            break
+
+if FFMPEG_EXE is None:
     raise FileNotFoundError("FFmpeg not found")
-if not os.path.exists(FFPROBE_EXE):
-    raise FileNotFoundError("FFprobe not found")
 
+if FFPROBE_EXE is None:
+    raise FileNotFoundError("FFprobe not found")
 
 # -----------------------------
 # Get video info

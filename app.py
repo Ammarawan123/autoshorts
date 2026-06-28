@@ -36,16 +36,41 @@ def update_progress(progress, status, success=True):
     progress_data["success"]  = success
 
 def check_ffmpeg():
-    """Check if FFmpeg is available on the system."""
+    """
+    Cross-platform FFmpeg detection.
+    Works on Windows, Linux and macOS.
+    """
+
+    import shutil
+    import os
+    import subprocess
+
+    ffmpeg = shutil.which("ffmpeg")
+
+    if ffmpeg is None:
+        possible_paths = [
+            r"C:\ffmpeg\bin\ffmpeg.exe",
+            r"C:\ffmpeg-8.1.2-essentials_build\bin\ffmpeg.exe",
+            r"C:\ffmpeg-8.1.2-essentials_build\ffmpeg-8.1.2-essentials_build\bin\ffmpeg.exe",
+        ]
+
+        for path in possible_paths:
+            if os.path.exists(path):
+                ffmpeg = path
+                break
+
+    if ffmpeg is None:
+        return False
+
     try:
         subprocess.run(
-            ['ffmpeg', '-version'],
+            [ffmpeg, "-version"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            check=True
+            check=True,
         )
         return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    except Exception:
         return False
 
 # Routes 
