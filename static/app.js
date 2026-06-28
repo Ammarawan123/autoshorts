@@ -69,10 +69,10 @@ const interval = setInterval(async () => {
             document.getElementById('progressPercent').innerText = '100%';
             document.getElementById('resultsGrid').style.display = 'block';
             
-            // Clips ko grid mein display karna
-            container.innerHTML = ''; // Purane results saaf karna
             
-            // Note: Agar aapka backend 'result.clips' array bhej raha hai
+            container.innerHTML = ''; 
+            
+            
             if (result.clips && result.clips.length > 0) {
                 result.clips.forEach(clip => {
                     container.innerHTML += `
@@ -87,7 +87,7 @@ const interval = setInterval(async () => {
             }
         } else {
             clearInterval(interval);
-            document.getElementById('progressMsg').innerText = '❌ Error: ' + (result.error || 'Something went wrong');
+            document.getElementById('progressMsg').innerText = '❌ Error: ' + (result.message || 'Something went wrong');
             document.getElementById('progressMsg').style.color = '#ef4444';
             document.getElementById('progressBar').style.background = '#ef4444';
             document.getElementById('progressPercent').style.color = '#ef4444';
