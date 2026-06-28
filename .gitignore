@@ -1,22 +1,46 @@
-# Python virtual environment
+# -----------------------------
+# Python Virtual Environment
+# -----------------------------
 venv/
 ENV/
 .env
 
-# Python cache files
+# -----------------------------
+# Python Cache
+# -----------------------------
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# [span_0](start_span)Project specific temporary folders[span_0](end_span)
+# -----------------------------
+# Generated Files
+# -----------------------------
+pipeline/transcript.json
+pipeline/scored_transcript.json
+
+# -----------------------------
+# Uploads & Output Videos
+# -----------------------------
 uploads/*
 !uploads/.gitkeep
+
 shorts_output/*
 !shorts_output/.gitkeep
 
-# IDE and OS files
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+
+# -----------------------------
+# IDE Files
+# -----------------------------
 .vscode/
 .idea/
+
+# -----------------------------
+# OS Files
+# -----------------------------
 .DS_Store
-Thumbs.dbs
+Thumbs.db
